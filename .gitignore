@@ -1,11 +1,5 @@
-.aider*
-.env
-
-*.mkv
-raw/
-output/
-dub/
-dist/
-data/pyinstaller/
-data/logs/
+/target
 keys.json
+player_log.txt
+data/
+*.tmp

@@ -18,7 +18,7 @@ let activeEpisodeNum = null; // Tracks current playing episode number of library
 let countdownInterval = null; // Countdown timer interval
 let countdownTime = 5; // Countdown duration
 let lastSaveTime = 0; // Tracks last progress save timestamp
-const DEFAULT_MODERNPLAYER_API_URL = 'http://54.235.4.93'; // server-first cloud API, so normal users do not need keys.json
+const DEFAULT_MODERNPLAYER_API_URL = ''; // old cloud server (54.235.4.93) is gone; the assistant runs on the local backend with keys.json
 let sidecarAudio = null; // External AAC audio for videos with unsupported embedded audio (DTS/TrueHD/etc.)
 let sidecarSyncTimer = null;
 let sidecarSyncBusy = false;
@@ -4913,6 +4913,10 @@ function updateHDRezkaMetadataUI(item) {
     const sourceEl = document.getElementById('hdrezka-source');
     if (sourceEl) sourceEl.textContent = item.source || '-';
 
+    // Synopsis can arrive later with the chronology metadata.
+    const synopsisEl = document.getElementById('hdrezka-synopsis');
+    if (synopsisEl && item.synopsis) synopsisEl.textContent = item.synopsis;
+
     const scoreEl = document.getElementById('hdrezka-score');
     if (scoreEl) {
         scoreEl.innerHTML = item.score ? `<span style="color: #ffb800; font-weight: 700;">★ ${item.score}</span>` : '-';
@@ -5027,7 +5031,7 @@ async function renderHDRezkaSeasons() {
     const activeTitleKey = (activeLibraryItem.title || '').toLowerCase().replace(/[^a-z0-9а-яё一-龯ぁ-んァ-ン]/gi, '');
     const activeChronoMeta = fullChrono.find(p => {
         const pKey = (p.name || '').toLowerCase().replace(/[^a-z0-9а-яё一-龯ぁ-んァ-ン]/gi, '');
-        return p.id === activeLibraryItem.id || (pKey && activeTitleKey && (pKey.includes(activeTitleKey) || activeTitleKey.includes(pKey)));
+        return p.id === activeLibraryItem.id || (pKey && activeTitleKey && pKey === activeTitleKey);
     });
 
     const seasonsList = [
@@ -5051,7 +5055,7 @@ async function renderHDRezkaSeasons() {
     
     fullChrono.forEach((part) => {
         const pKey = (part.name || '').toLowerCase().replace(/[^a-z0-9а-яё一-龯ぁ-んァ-ン]/gi, '');
-        if (part.id === activeLibraryItem.id || (pKey && activeTitleKey && (pKey.includes(activeTitleKey) || activeTitleKey.includes(pKey)))) {
+        if (part.id === activeLibraryItem.id || (pKey && activeTitleKey && pKey === activeTitleKey)) {
             return;
         }
         let libPart = null;
@@ -5490,7 +5494,7 @@ async function getRecursiveFranchiseChronology(startId) {
     if (window.pywebview && window.pywebview.api && startTitle) {
         try {
             console.log(`[AI Engine] Attempting AI franchise compiler for: "${startTitle}"`);
-            const aiResRaw = await window.pywebview.api.get_ai_franchise_info(startTitle);
+            const aiResRaw = await window.pywebview.api.get_ai_franchise_info(startTitle, (activeLibraryItem && activeLibraryItem.category) || '', startId);
             const aiRes = JSON.parse(aiResRaw);
             
             if (aiRes && aiRes.status === "success" && Array.isArray(aiRes.franchise)) {
@@ -6560,8 +6564,9 @@ async function completeMultipleEpisodesLinking(malId, files) {
         
         // Extract episode number from original filename as requested by user!
         const epMatch = originalName.match(/(?:ep|episode|s\d+e|series|серия|серии)?\s*(\d+)/i);
-        if (!epMatch) continue;
-        const epNum = parseInt(epMatch[1]);
+        // Backend parses the episode from the release name (skips 1080p, years, CRCs); regex is the fallback.
+        const epNum = Number(file.episode) || (epMatch ? parseInt(epMatch[1]) : 0);
+        if (!epNum) continue;
         
         const ep = matchedItem.episodes.find(e => e.num === epNum);
         if (ep) {

@@ -1,0 +1,29 @@
+[package]
+name = "modern-player"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "ModernPlayer"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "set-header"] }
+serde_json = "1"
+ureq = { version = "3", features = ["json"] }
+tao = "0.37"
+wry = "0.57"
+rfd = "0.17"
+raw-window-handle = "0.6"
+open = "5"
+md5 = "0.8"
+regex = "1"
+percent-encoding = "2"
+windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }
+
+[profile.release]
+strip = true
+lto = "thin"
